@@ -46,14 +46,12 @@ for i in range(len(targets)):
 
             cleaned_data.append([math_timestamp, price, volume])
 
-        master_data[targets[i]] = cleaned_data
-        #Acts kind of weird and says the second zero is out of bounds but the data looked good when printed so it didn't seem important
-        #print(type(cleaned_data[0][0]))
-    else:
-        print(f"FAILED: Steam blocked {targets[i]}")
+        master_data[targets[i]] = cleaned_data[0]
 
-
-
+print(len(cleaned_data))
+print(type(master_data[targets[0]][0][0]))
+print(master_data[targets[0]][0])
+print(master_data[targets[0]][-1])
 
 #add saftey features to normalize data and to make sure date is not empty 
 #Storage with sqlite, clean data polars and math with numpy

@@ -47,10 +47,8 @@ for i in range(len(targets)):
             cleaned_data.append([math_timestamp, price, volume])
 
         master_data[targets[i]] = cleaned_data
-        #Acts kind of weird and says the second zero is out of bounds but the data looked good when printed so it didn't seem important
-        #print(type(cleaned_data[0][0]))
-    else:
-        print(f"FAILED: Steam blocked {targets[i]}")
+        print(cleaned_data)
+        print(type(cleaned_data[0][0]))
 
 
 

@@ -12,11 +12,9 @@ targets = ["KiloWatt%20Case", "Recoil%20Case"]
 url = 'https://steamcommunity.com/market/listings/730/'
 custom_headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36'}
 
+cleaned_data = [[]]
 master_data = {}
 for i in range(len(targets)):
-
-    cleaned_data = [[]]
-
     response = requests.get(url+targets[i], custom_headers)
     random_delay = random.uniform(3.5,7.5)
     time.sleep(random_delay)
@@ -45,15 +43,12 @@ for i in range(len(targets)):
             volume = int(item[2])
 
             cleaned_data.append([math_timestamp, price, volume])
-
-        master_data[targets[i]] = cleaned_data
-        #Acts kind of weird and says the second zero is out of bounds but the data looked good when printed so it didn't seem important
-        #print(type(cleaned_data[0][0]))
-    else:
-        print(f"FAILED: Steam blocked {targets[i]}")
-
-
-
+            master_data[targets[i]] = [math_timestamp, price, volume]
+            
+print(len(cleaned_data))
+print(type(cleaned_data[0][0]))
+print(cleaned_data[0])
+print(cleaned_data[-1])
 
 #add saftey features to normalize data and to make sure date is not empty 
 #Storage with sqlite, clean data polars and math with numpy

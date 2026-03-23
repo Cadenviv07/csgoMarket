@@ -12,14 +12,11 @@ targets = ["KiloWatt%20Case", "Recoil%20Case"]
 url = 'https://steamcommunity.com/market/listings/730/'
 custom_headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36'}
 
-master_data = {}
+cleaned_data = [[]]
 for i in range(len(targets)):
-
-    cleaned_data = [[]]
-
     response = requests.get(url+targets[i], custom_headers)
-    random_delay = random.uniform(3.5,7.5)
-    time.sleep(random_delay)
+    random_int = random.randint(3.5,7.5)
+    time.sleep(random_int)
 
     html = response.text
 
@@ -37,23 +34,18 @@ for i in range(len(targets)):
         for item in recent_data:
             raw_date = item[0]
 
-            clean_date = raw_date.split(':')[0]
+            clean_date = raw_date[:15]
             math_timestamp = datetime.strptime(clean_date, "%b %d %Y %H")
 
             price = item[1]
 
             volume = int(item[2])
 
-            cleaned_data.append([math_timestamp, price, volume])
+            cleaned_data[i] = [math_timestamp, price, volume]
 
-        master_data[targets[i]] = cleaned_data
-        #Acts kind of weird and says the second zero is out of bounds but the data looked good when printed so it didn't seem important
-        #print(type(cleaned_data[0][0]))
-    else:
-        print(f"FAILED: Steam blocked {targets[i]}")
-
-
-
+print(type(cleaned_data[0][0]))
+print(cleaned_data[0])
+print(cleaned_data[-1])
 
 #add saftey features to normalize data and to make sure date is not empty 
 #Storage with sqlite, clean data polars and math with numpy
