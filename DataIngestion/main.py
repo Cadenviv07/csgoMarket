@@ -6,6 +6,13 @@ import json
 import calendar
 from datetime import datetime
 
+from storage import init_db
+
+from storage import save_case_data
+
+from urllib.parse import unquote
+
+
 # TODO: import the two functions you wrote in storage.py
 # from storage import ...
 
@@ -78,6 +85,13 @@ for i in range(len(targets)):
 # Keep it in a simple loop. No try/except yet — let errors surface so you can
 # see and learn from them.
 
+
+init_db()
+
+for key, value in master_data.items():
+    name = unquote(key)
+    save_case_data(name,value)
+    
 
 
 

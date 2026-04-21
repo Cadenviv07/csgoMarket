@@ -36,6 +36,24 @@ def init_db(db_path: Path = DB_PATH) -> None:
         separate line inside the CREATE TABLE parens.
       - Wrap the connection in a `with` block to auto-commit on success.
     """
+
+    connection = sqlite3.connection(db_path)
+
+    cursor = sqlite3.Cursor()
+
+    format = """CREATE TABLE IF NOT EXISTS case_prices( 
+        name TEXT NOT NULL,
+        date TEXT NOT NULL,
+        price INT NOT NULL,
+        volume INT,
+        PRIMARY KEY (name, date)
+    );"""
+
+    cursor.execute(format)
+
+    connection.commit()
+    connection.close()
+
     raise NotImplementedError("TODO: implement init_db")
 
 
@@ -63,4 +81,19 @@ def save_case_data(
       - `executemany` takes an iterable of tuples, one tuple per row.
       - NEVER build the SQL string with f-strings. Use `?` placeholders.
     """
+
+    connection = sqlite3.connect(db_path)
+    cursor = sqlite3.Cursor()
+    data = []
+    for row in rows:
+      entry = (case_name, row[0].isoformat(sep= " "), row[1], row[2])
+      data.append(entry)
+    
+    command = "INSERT INTO case_prices(name, date, price, volume) Values(?, ?, ?, ?)"
+
+    cursor.executemany(command, data)
+
+    connection.commit()
+    connection.close()
+
     raise NotImplementedError("TODO: implement save_case_data")
