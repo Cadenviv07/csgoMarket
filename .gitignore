@@ -1,0 +1,19 @@
+# SQLite database files
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# VS Code local history extension
+.history/
+
+# IDE
+.idea/
+.vscode/
