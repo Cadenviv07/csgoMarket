@@ -3,13 +3,10 @@ import random
 import re 
 import time 
 import json
-import calendar
 from datetime import datetime
-
+from datetime import timezone
 from storage import init_db
-
 from storage import save_case_data
-
 from urllib.parse import unquote
 
 
@@ -27,9 +24,20 @@ for i in range(len(targets)):
 
     cleaned_data = []
 
-    response = requests.get(url+targets[i], custom_headers)
     random_delay = random.uniform(3.5,7.5)
-    time.sleep(random_delay)
+    if i < len(targets) - 1: time.sleep(random_delay)
+
+    try:
+        response = requests.get(
+            url+targets[i], 
+            headers=custom_headers
+        )
+    except requests.exceptions.RequestException as e :
+        print(f"An error has occcured: {e}")
+    
+    
+    
+    targets[i] = unquote(targets[i])
 
     html = response.text
 
@@ -39,20 +47,22 @@ for i in range(len(targets)):
     # The single search execution
     match = re.search(pattern, html)
 
+    RECENT_HOURS = 24 * 30
+
     if match:
         raw_string = match.group(1)
         parsed_list = json.loads(raw_string)
-        recent_data = parsed_list[-720:]
+        recent_data = parsed_list[-RECENT_HOURS:]
         
         for item in recent_data:
             raw_date = item[0]
 
             clean_date = raw_date.split(':')[0]
-            math_timestamp = datetime.strptime(clean_date, "%b %d %Y %H")
+            math_timestamp = datetime.strptime(clean_date, "%b %d %Y %H").astimezone(timezone.utc)
 
-            price = item[1]
+            price = item[1].replace(",","")
 
-            volume = int(item[2])
+            volume = int(item[2].replace(",",""))
 
             cleaned_data.append([math_timestamp, price, volume])
 
@@ -89,9 +99,9 @@ for i in range(len(targets)):
 init_db()
 
 for key, value in master_data.items():
-    name = unquote(key)
-    save_case_data(name,value)
-    
+    save_case_data(key,value)
+
+
 
 
 

@@ -37,24 +37,22 @@ def init_db(db_path: Path = DB_PATH) -> None:
       - Wrap the connection in a `with` block to auto-commit on success.
     """
 
-    connection = sqlite3.connection(db_path)
+    with sqlite3.connect(db_path) as connection:
 
-    cursor = sqlite3.Cursor()
+      c = connection.cursor()
 
-    format = """CREATE TABLE IF NOT EXISTS case_prices( 
-        name TEXT NOT NULL,
-        date TEXT NOT NULL,
-        price INT NOT NULL,
-        volume INT,
-        PRIMARY KEY (name, date)
-    );"""
+      schema_sql = """CREATE TABLE IF NOT EXISTS case_prices( 
+          name TEXT NOT NULL,
+          date TEXT NOT NULL,
+          price REAL NOT NULL,
+          volume INT,
+          PRIMARY KEY (name, date)
+      );"""
 
-    cursor.execute(format)
+      c.execute(schema_sql)
 
-    connection.commit()
     connection.close()
 
-    raise NotImplementedError("TODO: implement init_db")
 
 
 def save_case_data(
@@ -82,18 +80,17 @@ def save_case_data(
       - NEVER build the SQL string with f-strings. Use `?` placeholders.
     """
 
-    connection = sqlite3.connect(db_path)
-    cursor = sqlite3.Cursor()
-    data = []
-    for row in rows:
-      entry = (case_name, row[0].isoformat(sep= " "), row[1], row[2])
-      data.append(entry)
-    
-    command = "INSERT INTO case_prices(name, date, price, volume) Values(?, ?, ?, ?)"
+    with sqlite3.connect(db_path) as connection:
+      c = connection.cursor()
+      data = []
+      for row in rows:
+        entry = (case_name, row[0].isoformat(sep= " "), row[1], row[2])
+        data.append(entry)
+      
+      command = "INSERT OR REPLACE INTO case_prices(name, date, price, volume) VALUES(?, ?, ?, ?)"
 
-    cursor.executemany(command, data)
+      c.executemany(command, data)
 
-    connection.commit()
     connection.close()
 
-    raise NotImplementedError("TODO: implement save_case_data")
+    
