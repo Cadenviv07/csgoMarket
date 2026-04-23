@@ -119,8 +119,7 @@ def get_signal(df: pl.DataFrame, case_name: str) -> np.ndarray:
 
 def resample_uniform_hourly(
     df: pl.DataFrame,
-    case_name: str,
-    fill_strategy: str = "forward",
+    case_name: str
 ) -> np.ndarray:
     """Resample one case's price series onto a uniform hourly grid.
 
@@ -159,12 +158,19 @@ def resample_uniform_hourly(
         call, but it's a modeling choice, not a plumbing choice.
     """
 
-    df = df.upsample(time_column="date", every="1h")
+    df = df.sort("date").upsample(time_column="date", every="1h")
 
     df = df.with_columns([
       pl.col("price").interpolate(),
       pl.col("volume").interpolate()
     ])
+
+    df = df.with_column([
+      pl.col("price").log()
+    ])
+
+    return get_signal(df, case_name)
+
    
 
 
