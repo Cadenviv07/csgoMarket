@@ -1,0 +1,7 @@
+# Python dependencies for csgoMarket.
+# After the first `py -m pip install -r requirements.txt`, run
+# `py -m pip freeze > requirements.txt` to pin exact versions reproducibly.
+
+requests==2.32.5
+polars>=1.0.0
+numpy>=2.0.0
