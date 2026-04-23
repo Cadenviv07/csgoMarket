@@ -23,6 +23,7 @@ from pathlib import Path
 
 import numpy as np
 import polars as pl
+import sqlite3
 
 from storage import DB_PATH
 
@@ -66,11 +67,13 @@ def load_prices(db_path: Path = DB_PATH) -> pl.DataFrame:
         input format.
       - `.sort(["name", "date"])` at the end.
     """
-    uri = f"sqlite:///{db_path}"
-    query = "SELECT * FROM case_prices"
-    df = pl.read_database_uri(query=query, uri=uri)
-    df = df.with_columns(pl.col("date").str.to_datetime(time_zone = "UTC"))
-    df = df.sort(["name", "date"])
+    with sqlite3.connect(db_path) as conn:
+      query = "SELECT * FROM case_prices"
+      df = pl.read_database(query=query, connection=conn)
+      df = df.with_columns(pl.col("date").str.to_datetime(time_zone = "UTC"))
+      df = df.sort(["name", "date"])
+    
+    conn.close()
 
     return df
 
@@ -108,14 +111,14 @@ def get_signal(df: pl.DataFrame, case_name: str) -> np.ndarray:
     """
 
     df = df.filter(pl.col("name") == case_name).sort("date").select("price")
-    if not df.is_empty():
+    if df.is_empty():
       raise ValueError("Case Name Does Not Exist In DataFrame")
     num_arr = df.to_numpy().flatten()
     return num_arr
 
 
 
-def resample_uniform_hourly_log_VWAP(
+def resample_uniform_hourly_log_Price(
     df: pl.DataFrame,
     case_name: str
 ) -> np.ndarray:
@@ -154,11 +157,12 @@ def resample_uniform_hourly_log_VWAP(
 
     df = df.with_columns([
       pl.col("price").interpolate(),
-      pl.col("volume").interpolate()
+      pl.col("volume").forward_fill()
     ])
 
     df = df.with_columns([
-      pl.col("price").log()
+      pl.col("price").log(),
+      pl.col("volume").log1p()
     ])
 
     df = df.with_columns([
@@ -181,7 +185,7 @@ if __name__ == "__main__":
     print("\nDataFrame head:")
     print(df.head())
 
-    sample_case = "KiloWatt Case"
+    sample_case = "Recoil Case"
     signal = get_signal(df, sample_case)
     print(f"\nSignal for {sample_case!r}:")
     print("  shape:", signal.shape)

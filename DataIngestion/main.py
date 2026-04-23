@@ -60,7 +60,7 @@ def main():
                 clean_date = raw_date.split(':')[0]
                 math_timestamp = datetime.strptime(clean_date, "%b %d %Y %H").replace(tzinfo=timezone.utc)
 
-                price = item[1].replace(",","")
+                price = item[1]
 
                 volume = int(item[2].replace(",",""))
 
