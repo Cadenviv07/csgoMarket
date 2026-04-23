@@ -66,11 +66,11 @@ def load_prices(db_path: Path = DB_PATH) -> pl.DataFrame:
         input format.
       - `.sort(["name", "date"])` at the end.
     """
-    uri = "sqlite://" + db_path
+    uri = f"sqlite:///{db_path}"
     query = "SELECT * FROM case_prices"
-    df = pl.read_database_uri(query = query, uri = uri)
-    df.with_columns(pl.col("date").str.to_datetime(time_zone = "UTC"))
-    df.sort(["name", "date"])
+    df = pl.read_database_uri(query=query, uri=uri)
+    df = df.with_columns(pl.col("date").str.to_datetime(time_zone = "UTC"))
+    df = df.sort(["name", "date"])
 
     return df
 
@@ -106,18 +106,16 @@ def get_signal(df: pl.DataFrame, case_name: str) -> np.ndarray:
       - Check for an empty result BEFORE calling `.to_numpy()`. A silent
         empty array is the worst kind of bug.
     """
-    exists = case_name in df["name"]
 
-    if exists == False:
+    df = df.filter(pl.col("name") == case_name).sort("date").select("price")
+    if not df.is_empty():
       raise ValueError("Case Name Does Not Exist In DataFrame")
-    
-    temp_arr = df.filter(pl.col("name") == case_name).sort("date").select("price").to_numpy()
-    num_arr = temp_arr.flatten()
+    num_arr = df.to_numpy().flatten()
     return num_arr
 
 
 
-def resample_uniform_hourly(
+def resample_uniform_hourly_log_VWAP(
     df: pl.DataFrame,
     case_name: str
 ) -> np.ndarray:
@@ -133,11 +131,6 @@ def resample_uniform_hourly(
     Args:
         df:            Long-format DataFrame from load_prices().
         case_name:     Case to resample.
-        fill_strategy: How to fill missing hours. One of:
-                         "forward"     -- forward-fill last known price
-                         "interpolate" -- linear interpolation between neighbors
-                         "zero"        -- fill with 0.0 (BAD idea, here for completeness)
-                         "drop"        -- raise if any hour is missing
 
     Returns:
         1D numpy array on a uniform hourly grid covering [min_date, max_date]
@@ -153,23 +146,26 @@ def resample_uniform_hourly(
         makes cases incomparable. Project-wide (fixed start across all
         cases) makes cases aligned but front-loads cases with gaps of
         NaN/fill at the start.
-      - Log vs linear price. Case prices span ~2 orders of magnitude across
-        the catalog. Log-transform before wavelet-ing is often the right
-        call, but it's a modeling choice, not a plumbing choice.
+      - Chose to Log prices because base prices of items vary in orders of magnitude 
+        and logging it gives the precentage difference more accurately
     """
 
-    df = df.sort("date").upsample(time_column="date", every="1h")
+    df = df.filter(pl.col("name") == case_name).sort("date").upsample(time_column="date", every="1h")
 
     df = df.with_columns([
       pl.col("price").interpolate(),
       pl.col("volume").interpolate()
     ])
 
-    df = df.with_column([
+    df = df.with_columns([
       pl.col("price").log()
     ])
 
-    return get_signal(df, case_name)
+    df = df.with_columns([
+      (pl.col("price") * pl.col("volume")).alias("VWAP")
+    ])
+
+    return df.select("VWAP").to_numpy().flatten()
 
    
 
