@@ -118,7 +118,7 @@ def get_signal(df: pl.DataFrame, case_name: str) -> np.ndarray:
 
 
 
-def resample_uniform_hourly_log_Price(
+def resample_uniform_hourly_log_Momentum(
     df: pl.DataFrame,
     case_name: str
 ) -> np.ndarray:
@@ -151,6 +151,8 @@ def resample_uniform_hourly_log_Price(
         NaN/fill at the start.
       - Chose to Log prices because base prices of items vary in orders of magnitude 
         and logging it gives the precentage difference more accurately
+      - Chose to detrend momentum  so that for 24 hour width periods continous increases
+        are not confuse for a spike
     """
 
     df = df.filter(pl.col("name") == case_name).sort("date").upsample(time_column="date", every="1h")
@@ -166,10 +168,14 @@ def resample_uniform_hourly_log_Price(
     ])
 
     df = df.with_columns([
-      (pl.col("price") * pl.col("volume")).alias("VWAP")
+      (pl.col("price") * pl.col("volume")).alias("Momentum")
     ])
 
-    return df.select("VWAP").to_numpy().flatten()
+    df = df.with_columns([
+      (pl.col("Momentum") - pl.col("Momentum").rolling_mean(window_size=24)).alias("detrended_momentum")
+    ])
+    
+    return df.select("detrended_momentum").to_numpy().flatten()
 
    
 

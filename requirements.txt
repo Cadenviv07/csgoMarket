@@ -5,3 +5,5 @@
 requests==2.32.5
 polars>=1.0.0
 numpy>=2.0.0
+connectorx // Essential for using polars
+pywt // For wavelets
