@@ -7,7 +7,14 @@ from datetime import datetime
 from datetime import timezone
 from storage import init_db
 from storage import save_case_data
+from storage import load_prices
 from urllib.parse import unquote
+from analysis import load_prices
+from analysis import resample_uniform_hourly_log_Momentum
+from wavelets import compute_cwt
+from visualization import heatmap
+from wavelets import build_scales
+from wavelets import cone_of_influence
 
 
 # TODO: import the two functions you wrote in storage.py
@@ -103,6 +110,14 @@ def main():
 
 if __name__ == "__main__":
     main()
+    case_name = "Recoil Case"
+    df, timestamps = load_prices()
+    signal = resample_uniform_hourly_log_Momentum(df, case_name)
+    scales = build_scales(2,24,n_scales=100,sampling_period_hours=1.0)
+    coefs, periods = compute_cwt(signal, scales)
+    coi = cone_of_influence(720, scales, periods)
+    heatmap(timestamps,signal, periods, coefs, coi)
+
 
 
 

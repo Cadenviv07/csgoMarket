@@ -28,7 +28,7 @@ import sqlite3
 from storage import DB_PATH
 
 
-def load_prices(db_path: Path = DB_PATH) -> pl.DataFrame:
+def load_prices(db_path: Path = DB_PATH) -> tuple[pl.DataFrame, np.ndarray]:
     """Load the entire `case_prices` table into a long-format Polars DataFrame.
 
     Returns a DataFrame with the following schema:
@@ -45,6 +45,7 @@ def load_prices(db_path: Path = DB_PATH) -> pl.DataFrame:
 
     Returns:
         A long-format Polars DataFrame. One row per (case_name, timestamp) pair.
+        A numpy array that holds the timestamps for future visuals
 
     Contract notes:
       - SQLite stores `date` as ISO-8601 TEXT (see storage.py schema).
@@ -72,10 +73,13 @@ def load_prices(db_path: Path = DB_PATH) -> pl.DataFrame:
       df = pl.read_database(query=query, connection=conn)
       df = df.with_columns(pl.col("date").str.to_datetime(time_zone = "UTC"))
       df = df.sort(["name", "date"])
-    
+      timestamps = df["date"].to_numpy()
+      query = "SELECT DISTINCT date FROM case_prices"
+      timestamps = pl.read_database(query=query, connection=conn).to_numpy()
+      
     conn.close()
 
-    return df
+    return df, timestamps
 
 def get_signal(df: pl.DataFrame, case_name: str) -> np.ndarray:
     """Extract one case's price series as a 1D numpy array.
@@ -174,7 +178,7 @@ def resample_uniform_hourly_log_Momentum(
     df = df.with_columns([
       (pl.col("Momentum") - pl.col("Momentum").rolling_mean(window_size=24)).alias("detrended_momentum")
     ])
-    
+
     return df.select("detrended_momentum").to_numpy().flatten()
 
    
