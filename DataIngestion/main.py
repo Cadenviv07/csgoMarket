@@ -7,7 +7,6 @@ from datetime import datetime
 from datetime import timezone
 from storage import init_db
 from storage import save_case_data
-from storage import load_prices
 from urllib.parse import unquote
 from analysis import load_prices
 from analysis import resample_uniform_hourly_log_Momentum
@@ -15,6 +14,7 @@ from wavelets import compute_cwt
 from visualization import heatmap
 from wavelets import build_scales
 from wavelets import cone_of_influence
+import numpy as np
 
 
 # TODO: import the two functions you wrote in storage.py
@@ -111,12 +111,32 @@ def main():
 if __name__ == "__main__":
     main()
     case_name = "Recoil Case"
+    print("DB TO DF")
     df, timestamps = load_prices()
+    print("POLARS")
     signal = resample_uniform_hourly_log_Momentum(df, case_name)
-    scales = build_scales(2,24,n_scales=100,sampling_period_hours=1.0)
+    print("ANALYSIS")
+    scales = build_scales(2,24,n_scales=100)
+    print("\n--- RADAR SCAN ---")
+    print(f"Array Shape: {signal.shape}")
+    print(f"Data Type:   {signal.dtype}")
+
+    # np.isnan fails if the data is strings, so we wrap it in a try-except
+    try:
+        nan_count = np.isnan(signal).sum()
+        inf_count = np.isinf(signal).sum()
+        print(f"NaN Count:   {nan_count}")
+        print(f"Inf Count:   {inf_count}")
+    except TypeError:
+        print("NaN Count:   FAILED (Data contains non-numbers/strings)")
+    print("------------------\n")
+    print("CWT")
     coefs, periods = compute_cwt(signal, scales)
+    print("MASK")
     coi = cone_of_influence(720, scales, periods)
+    print("MAP")
     heatmap(timestamps,signal, periods, coefs, coi)
+    print("FINSHED")
 
 
 

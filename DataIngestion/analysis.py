@@ -69,7 +69,7 @@ def load_prices(db_path: Path = DB_PATH) -> tuple[pl.DataFrame, np.ndarray]:
       - `.sort(["name", "date"])` at the end.
     """
     with sqlite3.connect(db_path) as conn:
-      query = "SELECT * FROM case_prices"
+      query = "SELECT * FROM case_prices LIMIT 1000"
       df = pl.read_database(query=query, connection=conn)
       df = df.with_columns(pl.col("date").str.to_datetime(time_zone = "UTC"))
       df = df.sort(["name", "date"])
@@ -162,8 +162,8 @@ def resample_uniform_hourly_log_Momentum(
     df = df.filter(pl.col("name") == case_name).sort("date").upsample(time_column="date", every="1h")
 
     df = df.with_columns([
-      pl.col("price").interpolate(),
-      pl.col("volume").forward_fill()
+      pl.col("price").interpolate().backward_fill(),
+      pl.col("volume").forward_fill().backward_fill()
     ])
 
     df = df.with_columns([
@@ -176,7 +176,7 @@ def resample_uniform_hourly_log_Momentum(
     ])
 
     df = df.with_columns([
-      (pl.col("Momentum") - pl.col("Momentum").rolling_mean(window_size=24)).alias("detrended_momentum")
+      (pl.col("Momentum") - pl.col("Momentum").rolling_mean(window_size=24)).backward_fill().alias("detrended_momentum")
     ])
 
     return df.select("detrended_momentum").to_numpy().flatten()

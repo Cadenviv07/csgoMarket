@@ -23,7 +23,7 @@ def build_scales(min_period_hours, max_period_hours, n_scales) -> np.ndarray:
         A numpys array that holds the scales that will be used for the wavelet
     """
 
-    human_hours = np.logspace(min_period_hours,max_period_hours, num=n_scales)
+    human_hours = np.linspace(min_period_hours,max_period_hours, num=n_scales)
 
     ricker_scales = human_hours/3.97
 
@@ -49,7 +49,10 @@ def compute_cwt(signal, scales) -> tuple[np.ndarray, np.ndarray]:
         A matrix of size len(scales), len(signal) that holds the normalied cofficent values
     """
 
-    coefs, _ = pywt.cwt(signal,scales, 'mexh', sampling_period=1)
+    clean_signal = np.asarray(signal, dtype=np.float64).flatten()
+    clean_scales = np.asarray(scales, dtype=np.float64).flatten()
+
+    coefs, _ = pywt.cwt(clean_signal,clean_scales, 'mexh', sampling_period=1, method='fft')
 
     #normalized_coefs = coefs * np.sqrt(ricker_scales[:, None])
 
