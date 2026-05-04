@@ -73,13 +73,9 @@ def load_prices(db_path: Path = DB_PATH) -> tuple[pl.DataFrame, np.ndarray]:
       df = pl.read_database(query=query, connection=conn)
       df = df.with_columns(pl.col("date").str.to_datetime(time_zone = "UTC"))
       df = df.sort(["name", "date"])
-      timestamps = df["date"].to_numpy()
-      query = "SELECT DISTINCT date FROM case_prices"
-      timestamps = pl.read_database(query=query, connection=conn).to_numpy()
-      
     conn.close()
 
-    return df, timestamps
+    return df
 
 def get_signal(df: pl.DataFrame, case_name: str) -> np.ndarray:
     """Extract one case's price series as a 1D numpy array.
@@ -124,8 +120,9 @@ def get_signal(df: pl.DataFrame, case_name: str) -> np.ndarray:
 
 def resample_uniform_hourly_log_Momentum(
     df: pl.DataFrame,
-    case_name: str
-) -> np.ndarray:
+    case_name: str,
+    span: int
+) -> tuple[np.ndarray, np.ndarray]:
     """Resample one case's price series onto a uniform hourly grid.
 
     Classical wavelet transforms (pywt.dwt, pywt.wavedec, pywt.cwt) assume
@@ -138,10 +135,10 @@ def resample_uniform_hourly_log_Momentum(
     Args:
         df:            Long-format DataFrame from load_prices().
         case_name:     Case to resample.
+        span:          Int parameter to define weight of EMA
 
     Returns:
-        1D numpy array on a uniform hourly grid covering [min_date, max_date]
-        for this case.
+        DataFrame that has been updated with new columns and such
 
     Decisions deferred to implementation time (do NOT pre-answer these):
       - Gap-fill semantics. Forward-fill creates artificial plateaus that
@@ -163,7 +160,8 @@ def resample_uniform_hourly_log_Momentum(
 
     df = df.with_columns([
       pl.col("price").interpolate().backward_fill(),
-      pl.col("volume").forward_fill().backward_fill()
+      pl.col("volume").forward_fill().backward_fill(),
+      pl.col("price").ewm_mean(span=span, adjust=False).alias("EMA")
     ])
 
     df = df.with_columns([
@@ -179,7 +177,7 @@ def resample_uniform_hourly_log_Momentum(
       (pl.col("Momentum") - pl.col("Momentum").rolling_mean(window_size=24)).backward_fill().alias("detrended_momentum")
     ])
 
-    return df.select("detrended_momentum").to_numpy().flatten()
+    return df
 
    
 

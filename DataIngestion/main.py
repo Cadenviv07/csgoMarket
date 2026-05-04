@@ -15,6 +15,7 @@ from visualization import heatmap
 from wavelets import build_scales
 from wavelets import cone_of_influence
 import numpy as np
+import polars as pl
 
 
 # TODO: import the two functions you wrote in storage.py
@@ -112,9 +113,11 @@ if __name__ == "__main__":
     main()
     case_name = "Recoil Case"
     print("DB TO DF")
-    df, timestamps = load_prices()
+    df = load_prices()
     print("POLARS")
-    signal = resample_uniform_hourly_log_Momentum(df, case_name)
+    df = resample_uniform_hourly_log_Momentum(df, case_name)
+    timestamps = df.select("date").to_numpy().flatten()
+    signal = df.select("detrended_momentum").to_numpy().flatten()
     print("ANALYSIS")
     scales = build_scales(2,24,n_scales=100)
     print("\n--- RADAR SCAN ---")
@@ -133,7 +136,7 @@ if __name__ == "__main__":
     print("CWT")
     coefs, periods = compute_cwt(signal, scales)
     print("MASK")
-    coi = cone_of_influence(720, scales, periods)
+    coi = cone_of_influence(len(timestamps), scales, periods)
     print("MAP")
     heatmap(timestamps,signal, periods, coefs, coi)
     print("FINSHED")

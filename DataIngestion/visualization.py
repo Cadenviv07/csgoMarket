@@ -12,6 +12,8 @@ def heatmap(timestamps, signal, periods_in_hours, coefficients, coi_mask):
     axs[1].pcolormesh(timestamps, periods_in_hours, coefficients, cmap = 'RdBu_r', vmin = -1*limit, vmax = limit)
     axs[1].set_yscale('log')
     danger_zone_only = np.ma.masked_where(coi_mask == False, coi_mask)
+    print(danger_zone_only.shape)
+    print(coefficients.shape)
     axs[1].pcolormesh(timestamps, periods_in_hours, danger_zone_only, 
               cmap='gray', shading='auto', alpha=0.6)
     
