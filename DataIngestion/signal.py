@@ -32,5 +32,6 @@ def detect_edge_shock(
 
     results = coefs[2:max_period+1]
     standard_dev = (np.std(results, axis=1))
+    
 
 
