@@ -14,8 +14,10 @@ from wavelets import compute_cwt
 from visualization import heatmap
 from wavelets import build_scales
 from wavelets import cone_of_influence
+from signalDetect import detect_edge_shock
 import numpy as np
 import polars as pl
+import time
 
 
 # TODO: import the two functions you wrote in storage.py
@@ -42,10 +44,9 @@ def main():
             )
         except requests.exceptions.RequestException as e :
             print(f"An error has occcured: {e}")
+            continue
         
-
-        
-        targets[i] = unquote(targets[i])
+        name = unquote(targets[i])
 
         html = response.text
 
@@ -74,11 +75,11 @@ def main():
 
                 cleaned_data.append([math_timestamp, price, volume])
 
-            master_data[targets[i]] = cleaned_data
+            master_data[name] = cleaned_data
             #Acts kind of weird and says the second zero is out of bounds but the data looked good when printed so it didn't seem important
             #print(type(cleaned_data[0][0]))
         else:
-            print(f"FAILED: Steam blocked {targets[i]}")
+            print(f"FAILED: Steam blocked {name}")
 
 
 
@@ -110,36 +111,54 @@ def main():
         save_case_data(key,value)
 
 if __name__ == "__main__":
-    main()
-    case_name = "Recoil Case"
-    print("DB TO DF")
-    df = load_prices()
-    print("POLARS")
-    df = resample_uniform_hourly_log_Momentum(df, case_name)
-    timestamps = df.select("date").to_numpy().flatten()
-    signal = df.select("detrended_momentum").to_numpy().flatten()
-    print("ANALYSIS")
-    scales = build_scales(2,24,n_scales=100)
-    print("\n--- RADAR SCAN ---")
-    print(f"Array Shape: {signal.shape}")
-    print(f"Data Type:   {signal.dtype}")
+    while True:
+        main()
+        case_name = "Recoil Case"
+        print("DB TO DF")
+        df = load_prices()
+        rows = df.height
+        crash_start_index = rows-3
+        crash_end_index = crash_start_index + 4
+        print("POLARS")
+        df = resample_uniform_hourly_log_Momentum(df, case_name, 168)
+        df = df.with_row_index().with_columns(
+            pl.when((pl.col("index") >= crash_start_index) & (pl.col("index") <= crash_end_index))
+            .then(pl.col("detrended_momentum") - 15.0)  
+            .otherwise(pl.col("detrended_momentum"))
+            .alias("detrended_momentum")
+        ).drop("index")
+        timestamps = df.select("date").to_numpy().flatten()
+        signal = df.select("detrended_momentum").to_numpy().flatten()
+        print("ANALYSIS")
+        scales = build_scales(2,24,n_scales=100)
+        print("\n--- RADAR SCAN ---")
+        print(f"Array Shape: {signal.shape}")
+        print(f"Data Type:   {signal.dtype}")
 
-    # np.isnan fails if the data is strings, so we wrap it in a try-except
-    try:
-        nan_count = np.isnan(signal).sum()
-        inf_count = np.isinf(signal).sum()
-        print(f"NaN Count:   {nan_count}")
-        print(f"Inf Count:   {inf_count}")
-    except TypeError:
-        print("NaN Count:   FAILED (Data contains non-numbers/strings)")
-    print("------------------\n")
-    print("CWT")
-    coefs, periods = compute_cwt(signal, scales)
-    print("MASK")
-    coi = cone_of_influence(len(timestamps), scales, periods)
-    print("MAP")
-    heatmap(timestamps,signal, periods, coefs, coi)
-    print("FINSHED")
+        # np.isnan fails if the data is strings, so we wrap it in a try-except
+        try:
+            nan_count = np.isnan(signal).sum()
+            inf_count = np.isinf(signal).sum()
+            print(f"NaN Count:   {nan_count}")
+            print(f"Inf Count:   {inf_count}")
+        except TypeError:
+            print("NaN Count:   FAILED (Data contains non-numbers/strings)")
+        print("------------------\n")
+        print("CWT")
+        coefs, periods = compute_cwt(signal, scales)
+        shock = detect_edge_shock(coefs, periods)
+        if shock != -1:
+            print("Shock Detected")
+            time.sleep(3600)
+        else:
+            print("Nothing")
+        
+
+    # print("MASK")
+    # coi = cone_of_influence(len(timestamps), scales, periods)
+    # print("MAP")
+    # heatmap(timestamps,signal, periods, coefs, coi)
+    # print("FINSHED")
 
 
 

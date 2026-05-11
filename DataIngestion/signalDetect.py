@@ -1,10 +1,13 @@
+from typing import Any
+
+
 import numpy as np
 
 
 def detect_edge_shock(
     coefs:        np.ndarray,        # shape (n_scales, n_times)
     periods:      np.ndarray,        # shape (n_scales,), in hours
-    max_period:   float = 4.0,       # only inspect rows at or below this
+    max_period:   int = 4,           # only inspect rows at or below this
     k:            float = 3.0,
 ) -> bool:
 
@@ -25,13 +28,25 @@ def detect_edge_shock(
 
     Returns
     -------
-    A 2D boolean matrix of shape (len(scales), signal_length). 
-    True means the data is corrupted. False means the data is safe.
+    
+    Returns an integer value for the minimum scale that triggered
+    a shock
 
     """
-
-    results = coefs[2:max_period+1]
+    valid_period_mask = (periods >= 2) & (periods <= max_period)
+    results = coefs[valid_period_mask]
+    tracked_scales = periods[valid_period_mask]
     standard_dev = (np.std(results, axis=1))
+    scaled_dev = standard_dev*k*-1
+    last_column = results[:, -1]
+    last_column_squeezed = np.squeeze(last_column)
+    shock = scaled_dev > last_column_squeezed
     
+    triggering_scales = tracked_scales[shock]
+
+    if len(triggering_scales) == 0:
+        return -1
+    else:
+        return np.min(triggering_scales)
 
 

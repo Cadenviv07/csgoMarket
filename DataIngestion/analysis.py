@@ -69,7 +69,7 @@ def load_prices(db_path: Path = DB_PATH) -> tuple[pl.DataFrame, np.ndarray]:
       - `.sort(["name", "date"])` at the end.
     """
     with sqlite3.connect(db_path) as conn:
-      query = "SELECT * FROM case_prices LIMIT 1000"
+      query = "SELECT * FROM case_prices"
       df = pl.read_database(query=query, connection=conn)
       df = df.with_columns(pl.col("date").str.to_datetime(time_zone = "UTC"))
       df = df.sort(["name", "date"])
@@ -165,12 +165,12 @@ def resample_uniform_hourly_log_Momentum(
     ])
 
     df = df.with_columns([
-      pl.col("price").log(),
+      pl.col("price").log().alias("log_price"),
       pl.col("volume").log1p()
     ])
-
+    
     df = df.with_columns([
-      (pl.col("price") * pl.col("volume")).alias("Momentum")
+      (pl.col("log_price") * pl.col("volume")).alias("Momentum")
     ])
 
     df = df.with_columns([
