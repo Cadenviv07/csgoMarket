@@ -17,3 +17,19 @@ venv/
 # IDE
 .idea/
 .vscode/
+
+# Rust / Cargo
+# Compiled build artifacts (per-crate target/ dirs anywhere in the repo)
+target/
+**/target/
+
+# Backup files emitted by older Cargo / rustfmt
+**/*.rs.bk
+
+# Per-user override file (machine-specific paths/profiles, never shared)
+.cargo/config.toml.user
+**/.cargo/config.toml.user
+
+# Trade journal output (append-only logs, local-only data)
+TradingEngine/trades.jsonl
+**/trades.jsonl
