@@ -1,4 +1,4 @@
-fn (tx: Sender<ShockMessage>){
+fn run(tx: Sender<ShockMessage>){
     let context = zmq::Context::new();
     let socket = context.socket(PULL);
     socket.bind("tcp://127.0.0.1:5555");
