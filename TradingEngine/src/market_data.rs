@@ -1,14 +1,17 @@
 use rusqlite::{Connection, Result};
 
-let project_root = env!("CARGO_MANIFEST_DIR");
-let db_path = PathBuf::from(project_root)
-        .join("DataIngestion")
-        .join("market.db");
-let db_path = current_file.parent().expect("First parent failed").parent().expect("Second parent failed").join("DataIngestion").join("market.db");
-
-let conn = Connection::open();
 
 fn latest_price(conn: &Connection, asset: &str) -> Option<f64>{
+
+    
+    let project_root = env!("CARGO_MANIFEST_DIR");
+    let db_path = PathBuf::from(project_root)
+            .join("DataIngestion")
+            .join("market.db");
+    let db_path = current_file.parent().expect("First parent failed").parent().expect("Second parent failed").join("DataIngestion").join("market.db");
+
+    let conn = Connection::open();
+
     //Statments for query map should be mutable
     let sql = "
     SELECT price 

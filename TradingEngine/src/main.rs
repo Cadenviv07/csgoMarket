@@ -2,6 +2,14 @@ use std::sync::mpsc;
 use std::thread;
 use std::time::Duration;
 use std::env;
+use std::collections::HashMap;
+use std::sync::Arc;
+use tokio::sync::Mutex;
+mod ipc;
+mod manager;
+use crate::ipc;
+use crate::manager::PaperExecutor;
+
 
 // $env:MARKET_DB_PATH="/my/custom/path.db"
 fn main(){
