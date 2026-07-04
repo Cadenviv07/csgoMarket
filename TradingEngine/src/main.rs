@@ -9,6 +9,7 @@ mod ipc;
 mod manager;
 use crate::ipc;
 use crate::manager::PaperExecutor;
+use rusqlite::Connection;
 
 
 // $env:MARKET_DB_PATH="/my/custom/path.db"

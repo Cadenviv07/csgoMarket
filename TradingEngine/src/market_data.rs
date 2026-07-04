@@ -1,9 +1,9 @@
 use rusqlite::{Connection, Result};
 
 
-fn latest_price(conn: &Connection, asset: &str) -> Option<f64>{
+pub fn latest_price(conn: &Connection, asset: &str) -> Option<f64>{
 
-    
+
     let project_root = env!("CARGO_MANIFEST_DIR");
     let db_path = PathBuf::from(project_root)
             .join("DataIngestion")
